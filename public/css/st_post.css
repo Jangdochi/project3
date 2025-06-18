@@ -1,0 +1,126 @@
+body {
+  margin: 0;
+  font-family: 'Noto Sans KR', sans-serif;
+  background-color: #ffffff;
+  color: #333;
+}
+
+.layout-container {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  display: flex;
+}
+
+h1 {
+  font-size: 24px;
+  color: #800000; /* 광운대 적색 */
+  border-bottom: 2px solid #800000;
+  padding-bottom: 10px;
+  margin-bottom: 30px;
+}
+
+p {
+  font-size: 16px;
+  line-height: 1.8;
+  margin: 10px 0;
+}
+
+strong {
+  color: #444;
+}
+
+#post-content {
+  white-space: pre-line;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+#post-file a {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 10px 14px;
+  background-color: #800000;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+#post-file a:hover {
+  background-color: #a22;
+}
+
+button {
+  margin-top: 30px;
+  padding: 10px 20px;
+  border: none;
+  background-color: #666;
+  color: #fff;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #444;
+}
+
+
+.board-area {
+  flex-grow: 1;
+  width: 100%;
+  max-width: none;
+  margin: 100px 60px 30px 240px;  /* 왼쪽 네비게이션 고려 + 상단 헤더 고려 */
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.post-title {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.post-meta {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.post-content {
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-bottom: 15px;
+}
+
+.post-file a {
+  color: #0066cc;
+  font-size: 14px;
+  text-decoration: underline;
+}
+
+.post-footer {
+  text-align: right;
+  margin-top: 20px;
+}
+
+.post-footer button {
+  background-color: #660000;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.post-footer button:hover {
+  background-color: #990000;
+}

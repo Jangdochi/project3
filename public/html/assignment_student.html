@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>학생 과제 제출 페이지</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="../css/assignment_studentstyle.css" />
+</head>
+<body>
+  <div class="main-container">
+      <!-- 왼쪽 네비게이션 -->
+  <aside class="nav-bar">
+
+    <div id="timer" class="nav-timer">60:00</div>
+    
+    <a href="student_main.html"><img src="../img/kw_logo3.png" alt="광운대 로고" class="nav-logo"></a>
+    <div class="nav-user">
+        <p id="user-department">컴퓨터정보공학부(교수)</p>
+        <p id="user-info">이름 (아이디)</p>
+    </div>
+    <button class="nav-btn" id="logoutBtn">로그아웃</button>
+    <button class="nav-btn">개인정보관리</button>
+
+
+  </aside>
+
+    <main class="content-area">
+      <h2>강의1 과제 목록</h2>
+      <div class="assignment-list" id="studentAssignmentList"></div>
+
+      <div class="assignment-detail" id="assignmentDetail" style="display:none; margin-top:20px;">
+        <h3 id="detailTitle"></h3>
+        <p id="detailDescription"></p>
+        <p id="detailFile"></p>
+        <p id="detailPeriod"></p>
+
+        <div id="submissionForm" style="margin-top: 20px;">
+          <h4>과제 제출</h4>
+          <input type="text" id="submitTitle" placeholder="제목" style="width: 100%; padding: 8px; margin-bottom: 10px;" />
+          <textarea id="submitDescription" placeholder="내용" rows="4" style="width: 100%; padding: 8px; margin-bottom: 10px;"></textarea>
+          <input type="file" id="submitFile" style="margin-bottom: 10px;" />
+          <div class="action-buttons" style="display:flex; gap:10px;">
+            <button class="btn btn-confirm" onclick="confirmSubmission()">확인</button>
+            <button class="btn btn-edit" onclick="enableEdit()" style="display:none;">수정</button>
+            <button class="btn btn-delete" onclick="showDeleteModal()" style="display:none;">삭제</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal" id="deleteModal" style="display:none;">
+    <div class="modal-content">
+      <p>정말 제출을 삭제하시겠습니까?</p>
+      <button class="btn btn-delete" onclick="confirmDelete()">예</button>
+      <button class="btn" onclick="cancelDelete()">아니오</button>
+    </div>
+  </div>
+
+<script>
+  let assignments = [];
+  let submission = null; // 현재 선택 과제의 제출 내역
+  let selectedAssignmentId = null;
+
+  // 서버에서 과제 목록 불러오기
+  async function fetchAssignments() {
+    try {
+      const res = await fetch('/api/assignments');
+      if (!res.ok) throw new Error("과제 목록 불러오기 실패");
+      assignments = await res.json();
+      renderAssignmentList();
+    } catch (e) {
+      alert(e.message);
+      console.error(e);
+    }
+  }
+
+  // 서버에서 제출 내역 불러오기
+async function fetchSubmission(assignmentId) {
+  const studentId = localStorage.getItem('userId');
+  const url = `/api/submissions/${assignmentId}?student_id=${studentId}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    credentials: 'include'    // 세션 쿠키가 필요하면 같이 보냅니다
+  });
+
+  if (!res.ok) throw new Error("제출 내역 불러오기 실패");
+  submission = await res.json();
+  updateSubmissionForm(submission);
+}
+
+
+  // 제출 폼 상태 업데이트 (data가 있으면 읽기전용, 없으면 입력 가능)
+  function updateSubmissionForm(data) {
+    const titleInput = document.getElementById("submitTitle");
+    const descInput = document.getElementById("submitDescription");
+    const fileInput = document.getElementById("submitFile");
+    const btnConfirm = document.querySelector(".btn-confirm");
+    const btnEdit = document.querySelector(".btn-edit");
+    const btnDelete = document.querySelector(".btn-delete");
+
+    if (data) {
+      titleInput.value = data.title || "";
+      descInput.value = data.description || "";
+      fileInput.value = ""; // 파일은 다시 선택해야 함
+
+      titleInput.disabled = true;
+      descInput.disabled = true;
+      fileInput.disabled = true;
+
+      btnConfirm.style.display = "none";
+      btnEdit.style.display = "inline-block";
+      btnDelete.style.display = "inline-block";
+    } else {
+      titleInput.value = "";
+      descInput.value = "";
+      fileInput.value = "";
+
+      titleInput.disabled = false;
+      descInput.disabled = false;
+      fileInput.disabled = false;
+
+      btnConfirm.style.display = "inline-block";
+      btnEdit.style.display = "none";
+      btnDelete.style.display = "none";
+    }
+  }
+
+  // 과제 목록 렌더링
+  function renderAssignmentList() {
+    const list = document.getElementById("studentAssignmentList");
+    list.innerHTML = "";
+    document.getElementById("assignmentDetail").style.display = "none";
+
+    assignments.forEach((a) => {
+      const item = document.createElement("div");
+      item.className = "assignment-item";
+      item.textContent = a.title + ` (${a.start_date} ~ ${a.end_date})`;
+      item.style.cursor = "pointer";
+
+      // 제출 여부 표시
+      if (submission && submission.assignment_id === a.id) {
+        const submittedTag = document.createElement("span");
+        submittedTag.textContent = " [제출완료]";
+        submittedTag.style.color = "green";
+        submittedTag.style.fontWeight = "bold";
+        item.appendChild(submittedTag);
+      }
+
+      item.onclick = async () => {
+        selectedAssignmentId = a.id;
+        document.getElementById("detailTitle").textContent = a.title;
+        document.getElementById("detailDescription").textContent = a.context;
+        document.getElementById("detailFile").innerHTML = a.file
+          ? `첨부파일: <a href="${a.file}" target="_blank">${a.file.split('/').pop()}</a>`
+          : "첨부파일: 없음";
+        document.getElementById("detailPeriod").textContent = `기한: ${a.start_date} ~ ${a.end_date}`;
+        document.getElementById("assignmentDetail").style.display = "block";
+
+        await fetchSubmission(a.id);
+      };
+      list.appendChild(item);
+    });
+  }
+
+  // 제출 확인 버튼 클릭 시 제출/수정 요청
+  async function confirmSubmission() {
+    if (!selectedAssignmentId) {
+      alert("과제를 선택해주세요.");
+      return;
+    }
+
+    const title = document.getElementById("submitTitle").value.trim();
+    const description = document.getElementById("submitDescription").value.trim();
+    const fileInput = document.getElementById("submitFile");
+    const file = fileInput.files[0];
+
+    if (!title || !description) {
+      alert("제목과 내용을 입력해주세요.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("description", description);
+    if (file) formData.append("file", file);
+
+    try {
+      let method = submission ? "PUT" : "POST";
+      let url = `/api/submissions/${selectedAssignmentId}`;
+
+      const res = await fetch(url, {
+        method,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "제출 실패");
+      }
+
+      alert("과제가 제출되었습니다.");
+      await fetchSubmission(selectedAssignmentId);
+    } catch (e) {
+      alert(e.message);
+      console.error(e);
+    }
+  }
+
+  // 수정 버튼 누르면 입력 폼 활성화
+  function enableEdit() {
+    document.getElementById("submitTitle").disabled = false;
+    document.getElementById("submitDescription").disabled = false;
+    document.getElementById("submitFile").disabled = false;
+
+    document.querySelector(".btn-confirm").style.display = "inline-block";
+    document.querySelector(".btn-edit").style.display = "none";
+    document.querySelector(".btn-delete").style.display = "none";
+  }
+
+  // 삭제 모달 띄우기
+  function showDeleteModal() {
+    document.getElementById("deleteModal").style.display = "flex";
+  }
+
+  // 제출 삭제 요청
+  async function confirmDelete() {
+    if (!selectedAssignmentId) return;
+
+    try {
+      const res = await fetch(`/api/submissions/${selectedAssignmentId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "삭제 실패");
+      }
+
+      alert("제출이 삭제되었습니다.");
+      submission = null;
+      updateSubmissionForm(null);
+      document.getElementById("deleteModal").style.display = "none";
+    } catch (e) {
+      alert(e.message);
+      console.error(e);
+    }
+  }
+
+  // 삭제 취소
+  function cancelDelete() {
+    document.getElementById("deleteModal").style.display = "none";
+  }
+
+  // 네비게이션 버튼 더미
+  function logout() {
+    alert("로그아웃 처리하세요");
+  }
+  function manageProfile() {
+    alert("개인정보 관리 페이지로 이동");
+  }
+
+  window.onload = () => {
+    fetchAssignments();
+  };
+</script>
+<script src="../js/script.js"></script>
+</body>
+</html>
